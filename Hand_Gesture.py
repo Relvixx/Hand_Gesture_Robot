@@ -2,6 +2,8 @@ import cv2
 import math
 import urllib.request
 from pathlib import Path
+import serial
+import time
 
 from mediapipe.tasks.python.core import base_options
 from mediapipe.tasks.python.vision import hand_landmarker
@@ -44,7 +46,14 @@ options = hand_landmarker.HandLandmarkerOptions(
     min_hand_detection_confidence=0.5,
     min_tracking_confidence=0.5,
 )
-
+# COM3 ki jagah apna actual Arduino port daalein (jaise COM4, COM5 aadi)
+try:
+    arduino = serial.Serial('COM3', 9600)
+    time.sleep(2) # Arduino ko reset hone aur connection banane ka time
+    print("Arduino se connection jud gaya hai!")
+except Exception as e:
+    print(f"Arduino connect nahi hua: {e}")
+    arduino = None
 cap = cv2.VideoCapture(0)
 with hand_landmarker.HandLandmarker.create_from_options(options) as landmarker:
     while True:
@@ -76,6 +85,8 @@ with hand_landmarker.HandLandmarker.create_from_options(options) as landmarker:
                     and hand_landmarks[20].y < hand_landmarks[17].y
                 ):
                     print('Forward')
+                    if arduino: arduino.write(b'F')
+                    
                 elif (
                     hand_landmarks[8].y > hand_landmarks[5].y
                     and hand_landmarks[12].y > hand_landmarks[9].y
@@ -83,6 +94,8 @@ with hand_landmarker.HandLandmarker.create_from_options(options) as landmarker:
                     and hand_landmarks[20].y > hand_landmarks[17].y
                 ):
                     print('Stop')
+                    if arduino: arduino.write(b'S')
+                    
                 elif (
                     hand_landmarks[8].y < hand_landmarks[5].y
                     and hand_landmarks[12].y > hand_landmarks[9].y
@@ -90,6 +103,8 @@ with hand_landmarker.HandLandmarker.create_from_options(options) as landmarker:
                     and hand_landmarks[20].y > hand_landmarks[17].y
                 ):
                     print('Backward')
+                    if arduino: arduino.write(b'B')
+                    
                 elif (
                     hand_landmarks[8].y < hand_landmarks[5].y
                     and hand_landmarks[12].y < hand_landmarks[9].y
@@ -97,6 +112,8 @@ with hand_landmarker.HandLandmarker.create_from_options(options) as landmarker:
                     and hand_landmarks[20].y > hand_landmarks[17].y
                 ):
                     print('Left')
+                    if arduino: arduino.write(b'L')
+                    
                 elif (
                     dist < 0.05
                     and hand_landmarks[12].y < hand_landmarks[9].y
@@ -104,7 +121,7 @@ with hand_landmarker.HandLandmarker.create_from_options(options) as landmarker:
                     and hand_landmarks[20].y < hand_landmarks[17].y
                 ):
                     print('Right')
-
+                    if arduino: arduino.write(b'R')
         cv2.imshow('AI Hand Gesture Control', img)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
